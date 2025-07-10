@@ -5,7 +5,7 @@ import { ParameterSchema } from "./ParameterSchema";
 export const TriggerSchemaFields = {
   accountId: z.string().describe("GTM Account ID."),
   containerId: z.string().describe("GTM Container ID."),
-  workspaceId: z.string().describe("GTM Workspace ID."),
+  workspaceId: z.string().default('0').describe("GTM Workspace ID."),
   triggerId: z
     .string()
     .optional()

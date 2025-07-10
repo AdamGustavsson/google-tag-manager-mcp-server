@@ -2,7 +2,7 @@ import { OAuthProvider } from "@cloudflare/workers-oauth-provider";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpAgent } from "agents/mcp";
 import { McpAgentPropsModel } from "./models/McpAgentModel";
-import { tools } from "./tools";
+import { registerTools } from "./tools_v2";
 import { apisHandler, getPackageVersion } from "./utils";
 
 export class GoogleTagManagerMCPServer extends McpAgent<
@@ -19,9 +19,7 @@ export class GoogleTagManagerMCPServer extends McpAgent<
   });
 
   async init() {
-    tools.forEach((register) => {
-      register(this.server, { props: this.props, env: this.env });
-    });
+    registerTools(this.server, { props: this.props, env: this.env });
   }
 }
 

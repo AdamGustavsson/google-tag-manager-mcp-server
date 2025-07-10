@@ -47,7 +47,7 @@ const TagFiringOptionEnum = z.enum([
 export const TagSchemaFields = {
   accountId: z.string().describe("GTM Account ID."),
   containerId: z.string().describe("GTM Container ID."),
-  workspaceId: z.string().describe("GTM Workspace ID."),
+  workspaceId: z.string().default('0').describe("GTM Workspace ID."),
   tagId: z
     .string()
     .optional()

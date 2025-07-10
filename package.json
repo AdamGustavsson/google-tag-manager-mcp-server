@@ -22,7 +22,7 @@
     "lint:fix": "eslint --ext .ts src --fix",
     "prepublish": "npm run build",
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --persist-to=.wrangler/state",
     "start": "wrangler dev",
     "cf-typegen": "wrangler types --include-env=false"
   },
