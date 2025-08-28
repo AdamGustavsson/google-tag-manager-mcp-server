@@ -38,23 +38,30 @@ export const list_workspace_entities = (
           tagmanager.accounts.containers.workspaces.variables.list({ parent }),
         ]);
 
-        // Extract only tagId and name from tags
-        const tags = tagsResponse.data.tag?.map(tag => ({
-          tagId: tag.tagId,
-          name: tag.name,
-        })) || [];
+        // Extract tagId, name, and type from tags
+        const tags =
+          tagsResponse.data.tag?.map(tag => ({
+            tagId: tag.tagId,
+            name: tag.name,
+            type: tag.type,
+            triggerIds: tag.firingTriggerId ?? [],
+          })) || [];
 
-        // Extract only triggerId and name from triggers
-        const triggers = triggersResponse.data.trigger?.map(trigger => ({
-          triggerId: trigger.triggerId,
-          name: trigger.name,
-        })) || [];
+        // Extract triggerId, name, and type (event type) from triggers
+        const triggers =
+          triggersResponse.data.trigger?.map(trigger => ({
+            triggerId: trigger.triggerId,
+            name: trigger.name,
+            type: trigger.type,
+          })) || [];
 
-        // Extract only variableId and name from variables
-        const variables = variablesResponse.data.variable?.map(variable => ({
-          variableId: variable.variableId,
-          name: variable.name,
-        })) || [];
+        // Extract variableId, name, and type from variables
+        const variables =
+          variablesResponse.data.variable?.map(variable => ({
+            variableId: variable.variableId,
+            name: variable.name,
+            type: variable.type,
+          })) || [];
 
         return {
           content: [

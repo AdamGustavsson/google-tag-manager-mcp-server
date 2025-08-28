@@ -49,7 +49,10 @@ export const list_workspaces = (
             tagManagerUrl,
             ...rest
           } = workspace;
-          return rest;
+          return {
+            ...rest,
+            workspaceUrl: tagManagerUrl // Add workspaceUrl before removing tagManagerUrl
+          };
         }) || [];
 
         return {
