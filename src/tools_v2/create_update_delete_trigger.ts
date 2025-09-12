@@ -16,12 +16,12 @@ const TriggerParameterSchema = z.object({
   map: z.array(z.any()).optional().describe("Array of key-value pairs."),
 });
 
-export const manage_trigger = (
+export const create_update_delete_trigger = (
   server: McpServer,
   { props }: McpAgentToolParamsModel,
 ): void => {
   server.tool(
-    "manage_trigger",
+    "create_update_delete_trigger",
     "Create, update, or delete a GTM Trigger",
     {
       action: z
@@ -64,10 +64,6 @@ export const manage_trigger = (
         .array(TriggerParameterSchema)
         .optional()
         .describe("The trigger's parameters."),
-      fingerprint: z
-        .string()
-        .optional()
-        .describe("Required for update. The fingerprint of the GTM Trigger for concurrency control."),
       notes: z
         .string()
         .optional()
@@ -83,13 +79,12 @@ export const manage_trigger = (
       container_id,
       workspace_id,
       trigger_id,
-      fingerprint,
       name,
       type,
       ...rest
     }): Promise<CallToolResult> => {
       log(
-        `Running tool: manage_trigger with action ${action} for workspace ${workspace_id}`,
+        `Running tool: create_update_delete_trigger with action ${action} for workspace ${workspace_id}`,
       );
 
       try {
@@ -161,7 +156,7 @@ export const manage_trigger = (
             }
             response = await tagmanager.accounts.containers.workspaces.triggers.update({
               path: `accounts/${account_id}/containers/${container_id}/workspaces/${workspace_id}/triggers/${trigger_id}`,
-              fingerprint: existingTrigger?.fingerprint || fingerprint,
+              fingerprint: (existingTrigger?.fingerprint || undefined) as string | undefined,
               requestBody,
             });
             break;

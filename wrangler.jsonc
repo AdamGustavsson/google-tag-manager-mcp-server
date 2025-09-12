@@ -26,6 +26,10 @@
       }
     ]
   },
+  "vars": {
+    "MCP_PUBLIC_BASE_URL": "https://google-tag-manager-mcp-server.adam-gustavsson.workers.dev",
+    "MCP_SSE_ENDPOINT_ABSOLUTE": "false"
+  },
   "kv_namespaces": [
     {
       "binding": "OAUTH_KV",

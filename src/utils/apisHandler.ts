@@ -84,7 +84,7 @@ async function redirectToGoogle(
       ...headers,
       location: getUpstreamAuthorizeUrl({
         upstreamUrl: "https://accounts.google.com/o/oauth2/v2/auth",
-        scope: scopes.join("  "),
+        scope: scopes.join(" "),
         clientId: c.env.GOOGLE_CLIENT_ID,
         redirectUri: new URL("/callback", c.req.raw.url).href,
         state: btoa(JSON.stringify(oauthReqInfo)),
@@ -110,8 +110,8 @@ app.get("/callback", async (c) => {
     return c.text("Missing code", 400);
   }
 
-  const [accessToken, googleErrResponse] = await fetchUpstreamAuthToken({
-    upstreamUrl: "https://accounts.google.com/o/oauth2/token",
+  const [googleTokens, googleErrResponse] = await fetchUpstreamAuthToken({
+    upstreamUrl: "https://oauth2.googleapis.com/token",
     clientId: c.env.GOOGLE_CLIENT_ID,
     clientSecret: c.env.GOOGLE_CLIENT_SECRET,
     code,
@@ -127,7 +127,7 @@ app.get("/callback", async (c) => {
     "https://www.googleapis.com/oauth2/v2/userinfo",
     {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${googleTokens.access_token}`,
       },
     },
   );
@@ -155,7 +155,10 @@ app.get("/callback", async (c) => {
     props: {
       name,
       email,
-      accessToken,
+      accessToken: googleTokens.access_token,
+      refreshToken: googleTokens.refresh_token,
+      googleClientId: c.env.GOOGLE_CLIENT_ID,
+      googleClientSecret: c.env.GOOGLE_CLIENT_SECRET,
       clientId: oauthReqInfo.clientId,
       userId: id,
     } as Props,

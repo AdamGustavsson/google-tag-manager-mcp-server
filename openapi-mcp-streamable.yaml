@@ -1,0 +1,54 @@
+swagger: '2.0'
+info:
+  title: Google Tag Manager MCP Server (Streamable HTTP)
+  description: MCP Streamable HTTP specification for the google-tag-manager-mcp-server
+  version: 1.0.0
+host: google-tag-manager-mcp-server.adam-gustavsson.workers.dev
+basePath: /
+schemes:
+  - https
+consumes: []
+produces: []
+paths:
+  /streamable-http:
+    post:
+      summary: Google Tag Manager MCP Server (Streamable HTTP)
+      x-ms-agentic-protocol: mcp-streamable-http-1.0
+      operationId: InvokeMCP
+      consumes:
+        - application/json
+      produces:
+        - text/event-stream
+      responses:
+        '200':
+          description: SSE stream with responses
+        '202':
+          description: Accepted when only notifications/responses (no open stream)
+securityDefinitions:
+  oauth2-auth:
+    type: oauth2
+    flow: accessCode
+    # IMPORTANT: use your Worker’s OAuth endpoints, not Google’s
+    authorizationUrl: https://google-tag-manager-mcp-server.adam-gustavsson.workers.dev/authorize
+    tokenUrl: https://google-tag-manager-mcp-server.adam-gustavsson.workers.dev/token
+    scopes:
+      email: email
+      profile: profile
+      https://www.googleapis.com/auth/tagmanager.manage.accounts: https://www.googleapis.com/auth/tagmanager.manage.accounts
+      https://www.googleapis.com/auth/tagmanager.edit.containers: https://www.googleapis.com/auth/tagmanager.edit.containers
+      https://www.googleapis.com/auth/tagmanager.delete.containers: https://www.googleapis.com/auth/tagmanager.delete.containers
+      https://www.googleapis.com/auth/tagmanager.edit.containerversions: https://www.googleapis.com/auth/tagmanager.edit.containerversions
+      https://www.googleapis.com/auth/tagmanager.manage.users: https://www.googleapis.com/auth/tagmanager.manage.users
+      https://www.googleapis.com/auth/tagmanager.publish: https://www.googleapis.com/auth/tagmanager.publish
+      https://www.googleapis.com/auth/tagmanager.readonly: https://www.googleapis.com/auth/tagmanager.readonly
+security:
+  - oauth2-auth:
+      - email
+      - profile
+      - https://www.googleapis.com/auth/tagmanager.manage.accounts
+      - https://www.googleapis.com/auth/tagmanager.edit.containers
+      - https://www.googleapis.com/auth/tagmanager.delete.containers
+      - https://www.googleapis.com/auth/tagmanager.edit.containerversions
+      - https://www.googleapis.com/auth/tagmanager.manage.users
+      - https://www.googleapis.com/auth/tagmanager.publish
+      - https://www.googleapis.com/auth/tagmanager.readonly

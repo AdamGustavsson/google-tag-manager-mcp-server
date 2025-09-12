@@ -30,6 +30,10 @@ export function getUpstreamAuthorizeUrl({
   upstream.searchParams.set("redirect_uri", redirectUri);
   upstream.searchParams.set("scope", scope);
   upstream.searchParams.set("response_type", "code");
+  // Request offline access so Google returns a refresh_token
+  upstream.searchParams.set("access_type", "offline");
+  // Force consent to ensure refresh_token is returned even if already approved
+  upstream.searchParams.set("prompt", "consent");
   if (state) upstream.searchParams.set("state", state);
   if (hostedDomain) upstream.searchParams.set("hd", hostedDomain);
   return upstream.href;
@@ -55,6 +59,7 @@ export async function fetchUpstreamAuthToken({
   redirectUri,
   upstreamUrl,
   grantType,
+  refreshToken,
 }: {
   code: string | undefined;
   upstreamUrl: string;
@@ -62,9 +67,22 @@ export async function fetchUpstreamAuthToken({
   redirectUri: string;
   clientId: string;
   grantType: string;
-}): Promise<[string, null] | [null, Response]> {
+  refreshToken?: string;
+}): Promise<[
+  {
+    access_token: string;
+    refresh_token?: string;
+    expires_in?: number;
+    scope?: string;
+    token_type?: string;
+  },
+  null
+] | [null, Response]> {
   if (!code) {
-    return [null, new Response("Missing code", { status: 400 })];
+    // Allow missing code for refresh_token grant
+    if (grantType !== "refresh_token") {
+      return [null, new Response("Missing code", { status: 400 })];
+    }
   }
 
   const resp = await fetch(upstreamUrl, {
@@ -72,13 +90,16 @@ export async function fetchUpstreamAuthToken({
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
+    // Google expects snake_case OAuth keys
     body: new URLSearchParams({
-      clientId,
-      clientSecret,
-      code,
-      redirectUri,
-      grantType,
-    }).toString(),
+      client_id: clientId,
+      client_secret: clientSecret,
+      ...(grantType === "refresh_token"
+        ? { refresh_token: refreshToken ?? "" }
+        : { code: code ?? "" }),
+      redirect_uri: redirectUri,
+      grant_type: grantType,
+    } as Record<string, string>).toString(),
   });
   if (!resp.ok) {
     console.log(await resp.text());
@@ -88,15 +109,17 @@ export async function fetchUpstreamAuthToken({
     ];
   }
 
-  interface authTokenResponse {
+  const body = (await resp.json()) as {
     access_token: string;
-  }
-
-  const body = (await resp.json()) as authTokenResponse;
+    refresh_token?: string;
+    expires_in?: number;
+    scope?: string;
+    token_type?: string;
+  };
   if (!body.access_token) {
     return [null, new Response("Missing access token", { status: 400 })];
   }
-  return [body.access_token, null];
+  return [body, null];
 }
 
 // Context from the auth process, encrypted & stored in the auth token
@@ -105,4 +128,7 @@ export type Props = {
   name: string;
   email: string;
   accessToken: string;
+  refreshToken?: string;
+  googleClientId?: string;
+  googleClientSecret?: string;
 };

@@ -71,21 +71,21 @@ This phase involves creating new tools that orchestrate calls to multiple existi
 
 This phase will focus on creating the "manage" tools, which act as versatile wrappers for CRUD (Create, Read, Update, Delete) operations on GTM entities.
 
-- **`manage_tag`**:
-  - Create `src/tools_v2/manage_tag.ts`.
-  - The tool will use a `switch` statement on the `action` parameter (`create`, `update`, `delete`).
-  - Each case will call the corresponding existing tool: `tag_manager_create_tag`, `tag_manager_update_tag`, or `tag_manager_delete_tag`.
-  - Input fields will be mapped from `snake_case` to `camelCase`.
+- **`create_update_delete_tag`**:
+  - Create `src/tools_v2/create_update_delete_tag.ts`.
+  - Uses an `action` parameter (`create`, `update`, `delete`).
+  - For updates, the tool fetches the current tag and uses its `fingerprint` automatically (no input `fingerprint`).
+  - Input fields are mapped from `snake_case` to the API’s camelCase.
 
-- **`manage_trigger`**:
-  - Create `src/tools_v2/manage_trigger.ts`.
-  - Similar to `manage_tag`, this will wrap the create, update, and delete functions for triggers.
-  - It will handle the mapping of the `custom_event_filter` to the `ConditionSchema`.
+- **`create_update_delete_trigger`**:
+  - Create `src/tools_v2/create_update_delete_trigger.ts`.
+  - Similar to tags. The tool fetches the existing trigger for updates and uses its `fingerprint` automatically (no input `fingerprint`).
+  - Maps `custom_event_filter`, `filter`, `auto_event_filter`, and `parameter` as needed.
 
-- **`manage_variable`**:
-  - Create `src/tools_v2/manage_variable.ts`.
-  - This will wrap the create, update, and delete functions for variables.
-  - It will also handle the mapping for `format_value_case_conversion_type`.
+- **`create_update_delete_variable`**:
+  - Create `src/tools_v2/create_update_delete_variable.ts`.
+  - Similar to tags/triggers. The tool fetches the existing variable for updates and uses its `fingerprint` automatically (no input `fingerprint`).
+  - Handles mapping for `format_value` and related fields.
 
 ## Phase 5: Finalization and Cleanup
 

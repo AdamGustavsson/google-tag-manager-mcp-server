@@ -16,12 +16,12 @@ const VariableParameterSchema = z.object({
   map: z.array(z.any()).optional().describe("Array of key-value pairs."),
 });
 
-export const manage_variable = (
+export const create_update_delete_variable = (
   server: McpServer,
   { props }: McpAgentToolParamsModel,
 ): void => {
   server.tool(
-    "manage_variable",
+    "create_update_delete_variable",
     "Create, update, or delete a GTM Variable",
     {
       action: z
@@ -52,10 +52,6 @@ export const manage_variable = (
         .array(VariableParameterSchema)
         .optional()
         .describe("The variable's parameters."),
-      fingerprint: z
-        .string()
-        .optional()
-        .describe("Required for update. The fingerprint of the GTM Variable for concurrency control."),
       notes: z
         .string()
         .optional()
@@ -90,13 +86,12 @@ export const manage_variable = (
       container_id,
       workspace_id,
       variable_id,
-      fingerprint,
       name,
       type,
       ...rest
     }): Promise<CallToolResult> => {
       log(
-        `Running tool: manage_variable with action ${action} for workspace ${workspace_id}`,
+        `Running tool: create_update_delete_variable with action ${action} for workspace ${workspace_id}`,
       );
 
       try {
@@ -170,7 +165,7 @@ export const manage_variable = (
             }
             response = await tagmanager.accounts.containers.workspaces.variables.update({
               path: `accounts/${account_id}/containers/${container_id}/workspaces/${workspace_id}/variables/${variable_id}`,
-              fingerprint: existingVariable?.fingerprint || fingerprint,
+              fingerprint: (existingVariable?.fingerprint || undefined) as string | undefined,
               requestBody,
             });
             break;

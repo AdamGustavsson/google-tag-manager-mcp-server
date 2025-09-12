@@ -41,12 +41,12 @@ const TeardownTagSchema = z.object({
     ),
 });
 
-export const manage_tag = (
+export const create_update_delete_tag = (
   server: McpServer,
   { props }: McpAgentToolParamsModel,
 ): void => {
   server.tool(
-    "manage_tag",
+    "create_update_delete_tag",
     "Create, update, or delete a GTM Tag",
     {
       action: z
@@ -139,12 +139,7 @@ export const manage_tag = (
       consent_settings: ConsentSettingSchema.optional().describe(
         "Consent settings of a tag.",
       ),
-      fingerprint: z
-        .string()
-        .optional()
-        .describe(
-          "Required for update. The fingerprint of the GTM Tag for concurrency control.",
-        ),
+      // fingerprint intentionally omitted; tool fetches latest automatically
     },
     async ({
       action,
@@ -152,13 +147,12 @@ export const manage_tag = (
       container_id,
       workspace_id,
       tag_id,
-      fingerprint,
       name,
       type,
       ...rest
     }): Promise<CallToolResult> => {
       log(
-        `Running tool: manage_tag with action ${action} for workspace ${workspace_id}`,
+        `Running tool: create_update_delete_tag with action ${action} for workspace ${workspace_id}`,
       );
 
       try {
@@ -263,7 +257,7 @@ export const manage_tag = (
             }
             response = await tagmanager.accounts.containers.workspaces.tags.update({
               path: `accounts/${account_id}/containers/${container_id}/workspaces/${workspace_id}/tags/${tag_id}`,
-              fingerprint: existingTag?.fingerprint || fingerprint,
+              fingerprint: (existingTag?.fingerprint || undefined) as string | undefined,
               requestBody,
             });
             break;

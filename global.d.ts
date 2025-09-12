@@ -8,6 +8,7 @@ declare namespace Cloudflare {
     COOKIE_ENCRYPTION_KEY: "";
     HOSTED_DOMAIN: "";
     WORKER_HOST: "";
+    MCP_PUBLIC_BASE_URL: string;
     MCP_OBJECT: DurableObjectNamespace<import("./src/index").GoogleTagManagerMCPServer>;
   }
 }
