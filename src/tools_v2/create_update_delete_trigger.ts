@@ -6,15 +6,7 @@ import { createErrorResponse, getTagManagerClient, log } from "../utils";
 import { McpAgentToolParamsModel } from "../models/McpAgentModel";
 import Schema$Trigger = tagmanager_v2.Schema$Trigger;
 import { ConditionSchema } from "../schemas/ConditionSchema";
-
-// Reuse the existing trigger schema components
-const TriggerParameterSchema = z.object({
-  type: z.string().optional().describe("The type of the parameter."),
-  key: z.string().optional().describe("Parameter key."),
-  value: z.string().optional().describe("Parameter value."),
-  list: z.array(z.any()).optional().describe("List of parameter values."),
-  map: z.array(z.any()).optional().describe("Array of key-value pairs."),
-});
+import { ParameterSchema } from "../schemas/ParameterSchema";
 
 export const create_update_delete_trigger = (
   server: McpServer,
@@ -49,21 +41,25 @@ export const create_update_delete_trigger = (
         .optional()
         .describe("Required for create/update. Defines the data layer event that causes this trigger."),
       custom_event_filter: z
-        .array(z.any())
+        .array(ConditionSchema)
         .optional()
-        .describe("Used in the case of custom event, which is fired iff all Conditions are true."),
+        .describe(
+          "Used in the case of custom event, which is fired iff all Conditions are true.",
+        ),
       filter: z
-        .array(z.any())
+        .array(ConditionSchema)
         .optional()
         .describe("The trigger will only fire iff all Conditions are true."),
       auto_event_filter: z
-        .array(z.any())
+        .array(ConditionSchema)
         .optional()
         .describe("Used in the case of auto event tracking."),
       parameter: z
-        .array(TriggerParameterSchema)
+        .array(ParameterSchema)
         .optional()
-        .describe("The trigger's parameters."),
+        .describe(
+          "The trigger's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you want to retain; omit to reuse the current set.",
+        ),
       notes: z
         .string()
         .optional()
@@ -175,8 +171,10 @@ export const create_update_delete_trigger = (
                   text: JSON.stringify(
                     {
                       success: true,
-                      message: `Trigger ${trigger_id} was successfully deleted`,
+                      action,
+                      entityType: "trigger",
                       workspaceId: workspace_id,
+                      triggerId: trigger_id,
                     },
                     null,
                     2,
@@ -189,10 +187,13 @@ export const create_update_delete_trigger = (
         // For create and update, return minimal response [[memory:2837403]]
         if (response?.data) {
           const result = {
+            success: true,
+            action,
+            entityType: "trigger",
+            workspaceId: workspace_id,
             triggerId: response.data.triggerId,
             name: response.data.name,
             type: response.data.type,
-            workspaceId: workspace_id,
           };
 
           return {

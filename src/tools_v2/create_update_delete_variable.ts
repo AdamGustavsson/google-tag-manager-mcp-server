@@ -4,17 +4,9 @@ import { z } from "zod";
 import { tagmanager_v2 } from "googleapis";
 import { createErrorResponse, getTagManagerClient, log } from "../utils";
 import { McpAgentToolParamsModel } from "../models/McpAgentModel";
+import { ParameterSchema } from "../schemas/ParameterSchema";
 import Schema$Variable = tagmanager_v2.Schema$Variable;
 import { FormatValueSchema } from "../schemas/VariableSchema";
-
-// Reuse the existing parameter schema components
-const VariableParameterSchema = z.object({
-  type: z.string().optional().describe("The type of the parameter."),
-  key: z.string().optional().describe("Parameter key."),
-  value: z.string().optional().describe("Parameter value."),
-  list: z.array(z.any()).optional().describe("List of parameter values."),
-  map: z.array(z.any()).optional().describe("Array of key-value pairs."),
-});
 
 export const create_update_delete_variable = (
   server: McpServer,
@@ -49,9 +41,11 @@ export const create_update_delete_variable = (
         .optional()
         .describe("Required for create/update. GTM Variable Type."),
       parameter: z
-        .array(VariableParameterSchema)
+        .array(ParameterSchema)
         .optional()
-        .describe("The variable's parameters."),
+        .describe(
+          "The variable's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you wish to keep; omit to retain the current set.",
+        ),
       notes: z
         .string()
         .optional()
@@ -184,8 +178,10 @@ export const create_update_delete_variable = (
                   text: JSON.stringify(
                     {
                       success: true,
-                      message: `Variable ${variable_id} was successfully deleted`,
+                      action,
+                      entityType: "variable",
                       workspaceId: workspace_id,
+                      variableId: variable_id,
                     },
                     null,
                     2,
@@ -198,10 +194,13 @@ export const create_update_delete_variable = (
         // For create and update, return minimal response [[memory:2837403]]
         if (response?.data) {
           const result = {
+            success: true,
+            action,
+            entityType: "variable",
+            workspaceId: workspace_id,
             variableId: response.data.variableId,
             name: response.data.name,
             type: response.data.type,
-            workspaceId: workspace_id,
           };
 
           return {

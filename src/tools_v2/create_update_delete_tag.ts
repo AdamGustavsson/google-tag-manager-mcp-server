@@ -4,9 +4,9 @@ import { z } from "zod";
 import { tagmanager_v2 } from "googleapis";
 import { createErrorResponse, getTagManagerClient, log } from "../utils";
 import { McpAgentToolParamsModel } from "../models/McpAgentModel";
+import { ParameterSchema } from "../schemas/ParameterSchema";
 import Schema$Tag = tagmanager_v2.Schema$Tag;
 import Schema$Parameter = tagmanager_v2.Schema$Parameter;
-import Schema$TagConsentSetting = tagmanager_v2.Schema$TagConsentSetting;
 
 // Reuse the existing tag schema components
 const ConsentSettingSchema = z.object({
@@ -16,9 +16,12 @@ const ConsentSettingSchema = z.object({
     .describe(
       "The tag's consent status. If set to NEEDED, the runtime will check that the consent types specified by the consentType field have been granted.",
     ),
-  consent_type: z.array(z.any()).optional().describe(
-    "The type of consents to check for during tag firing if in the consent NEEDED state.",
-  ),
+  consent_type: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "The type of consents to check for during tag firing if in the consent NEEDED state.",
+    ),
 });
 
 const SetupTagSchema = z.object({
@@ -98,9 +101,11 @@ export const create_update_delete_tag = (
         .optional()
         .describe("The end timestamp in milliseconds to schedule a tag."),
       parameter: z
-        .array(z.any())
+        .array(ParameterSchema)
         .optional()
-        .describe("The tag's parameters."),
+        .describe(
+          "The tag's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you want to keep; omit to reuse the current set (HTML tags still require an html parameter).",
+        ),
       firing_trigger_ids: z
         .array(z.string())
         .optional()
@@ -276,8 +281,10 @@ export const create_update_delete_tag = (
                   text: JSON.stringify(
                     {
                       success: true,
-                      message: `Tag ${tag_id} was successfully deleted`,
+                      action,
+                      entityType: "tag",
                       workspaceId: workspace_id,
+                      tagId: tag_id,
                     },
                     null,
                     2,
@@ -290,10 +297,13 @@ export const create_update_delete_tag = (
         // For create and update, return minimal response [[memory:2837403]]
         if (response?.data) {
           const result = {
+            success: true,
+            action,
+            entityType: "tag",
+            workspaceId: workspace_id,
             tagId: response.data.tagId,
             name: response.data.name,
             type: response.data.type,
-            workspaceId: workspace_id,
           };
 
           return {
