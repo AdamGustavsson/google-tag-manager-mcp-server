@@ -229,8 +229,11 @@ export const create_update_delete_tag = (
           consentSettings: rest.consent_settings ? {
             consentStatus: rest.consent_settings.consent_status,
             consentType: rest.consent_settings.consent_type ? {
-              type: "template",
-              value: JSON.stringify(rest.consent_settings.consent_type),
+              type: "list",
+              list: rest.consent_settings.consent_type.map(consentType => ({
+                type: "template",
+                value: consentType,
+              })),
             } as Schema$Parameter : undefined,
           } : existingTag?.consentSettings,
         };

@@ -31,7 +31,7 @@ export const update = (
         const response =
           await tagmanager.accounts.containers.workspaces.tags.update({
             path: `accounts/${accountId}/containers/${containerId}/workspaces/${workspaceId}/tags/${tagId}`,
-            fingerprint,
+            fingerprint: fingerprint as string,
             requestBody: rest as Schema$Tag,
           });
 

@@ -119,8 +119,7 @@ export const TagSchemaFields = {
     .describe(
       "Indicates whether the tag is paused, which prevents the tag from firing.",
     ),
-  monitoringMetadata: z
-    .object(ParameterSchema.shape)
+  monitoringMetadata: ParameterSchema
     .optional()
     .describe(
       "A map of key-value pairs of tag metadata to be included in the event data for tag monitoring.",

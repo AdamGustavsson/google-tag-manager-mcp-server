@@ -1,6 +1,15 @@
 import { z } from "zod";
 
-const ParameterSchemaObject = z.object({
+type ParameterSchemaType = {
+  type?: string;
+  key?: string;
+  value?: string;
+  list?: ParameterSchemaType[];
+  map?: ParameterSchemaType[];
+  isWeakReference?: boolean;
+};
+
+const ParameterSchemaObject: z.ZodType<ParameterSchemaType> = z.object({
   type: z.string().optional().describe("The type of the parameter."),
   key: z.string().optional().describe("Parameter key."),
   value: z
@@ -10,11 +19,11 @@ const ParameterSchemaObject = z.object({
       "Parameter value as a string. The actual value may depend on the parameter type.",
     ),
   list: z
-    .array(z.lazy(() => ParameterSchemaObject))
+    .array(z.lazy((): z.ZodType<ParameterSchemaType> => ParameterSchemaObject))
     .optional()
     .describe("List of parameter values (if the parameter is a list type)."),
   map: z
-    .array(z.lazy(() => ParameterSchemaObject))
+    .array(z.lazy((): z.ZodType<ParameterSchemaType> => ParameterSchemaObject))
     .optional()
     .describe("Array of key-value pairs for map parameters."),
   isWeakReference: z
