@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
+import { z, type ZodRawShape } from "zod";
 import { tagmanager_v2 } from "googleapis";
 import { createErrorResponse, getTagManagerClient, log } from "../utils";
 import { McpAgentToolParamsModel } from "../models/McpAgentModel";
@@ -48,104 +48,104 @@ export const create_update_delete_tag = (
   server: McpServer,
   { props }: McpAgentToolParamsModel,
 ): void => {
-  server.tool(
+  const paramsSchema: ZodRawShape = {
+    action: z
+      .enum(["create", "update", "delete"])
+      .describe("The action to perform on the tag."),
+    account_id: z
+      .string()
+      .describe("The unique ID of the GTM Account."),
+    container_id: z
+      .string()
+      .describe("The unique ID of the GTM Container."),
+    workspace_id: z
+      .string()
+      .describe("The unique ID of the GTM Workspace."),
+    tag_id: z
+      .string()
+      .optional()
+      .describe("Required for update/delete. The unique ID of the GTM Tag."),
+    name: z
+      .string()
+      .optional()
+      .describe("Required for create/update. Tag display name."),
+    type: z
+      .string()
+      .optional()
+      .describe("Required for create/update. GTM Tag Type."),
+    live_only: z
+      .boolean()
+      .optional()
+      .describe(
+        "If set to true, this tag will only fire in the live environment.",
+      ),
+    priority: z
+      .number()
+      .optional()
+      .describe("User defined numeric priority of the tag. Default is 0."),
+    notes: z
+      .string()
+      .optional()
+      .describe("User notes on how to apply this tag in the container."),
+    schedule_start_ms: z
+      .string()
+      .optional()
+      .describe("The start timestamp in milliseconds to schedule a tag."),
+    schedule_end_ms: z
+      .string()
+      .optional()
+      .describe("The end timestamp in milliseconds to schedule a tag."),
+    parameter: z
+      .array(ParameterSchema)
+      .optional()
+      .describe(
+        "The tag's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you want to keep; omit to reuse the current set (HTML tags still require an html parameter).",
+      ),
+    firing_trigger_ids: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "Firing trigger IDs. A tag will fire when any of the listed triggers are true; provide an array even when specifying a single trigger ID.",
+      ),
+    blocking_trigger_ids: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "Blocking trigger IDs. If any of the listed triggers evaluate to true, the tag will not fire.",
+      ),
+    setup_tags: z
+      .array(SetupTagSchema)
+      .optional()
+      .describe("The list of setup tags. Currently only one is allowed."),
+    teardown_tags: z
+      .array(TeardownTagSchema)
+      .optional()
+      .describe("The list of teardown tags. Currently only one is allowed."),
+    tag_firing_option: z
+      .enum([
+        "tagFiringOptionUnspecified",
+        "unlimited",
+        "oncePerEvent",
+        "oncePerLoad",
+      ])
+      .optional()
+      .describe("Option to fire this tag."),
+    paused: z
+      .boolean()
+      .optional()
+      .describe(
+        "Indicates whether the tag is paused, which prevents the tag from firing.",
+      ),
+    consent_settings: ConsentSettingSchema.optional().describe(
+      "Consent settings of a tag.",
+    ),
+    // fingerprint intentionally omitted; tool fetches latest automatically
+  };
+
+  const registeredTool = server.tool(
     "create_update_delete_tag",
     "Create, update, or delete a GTM Tag",
-    {
-      action: z
-        .enum(["create", "update", "delete"])
-        .describe("The action to perform on the tag."),
-      account_id: z
-        .string()
-        .describe("The unique ID of the GTM Account."),
-      container_id: z
-        .string()
-        .describe("The unique ID of the GTM Container."),
-      workspace_id: z
-        .string()
-        .describe("The unique ID of the GTM Workspace."),
-      tag_id: z
-        .string()
-        .optional()
-        .describe("Required for update/delete. The unique ID of the GTM Tag."),
-      name: z
-        .string()
-        .optional()
-        .describe("Required for create/update. Tag display name."),
-      type: z
-        .string()
-        .optional()
-        .describe("Required for create/update. GTM Tag Type."),
-      live_only: z
-        .boolean()
-        .optional()
-        .describe(
-          "If set to true, this tag will only fire in the live environment.",
-        ),
-      priority: z
-        .number()
-        .optional()
-        .describe(
-          "User defined numeric priority of the tag. Default is 0.",
-        ),
-      notes: z
-        .string()
-        .optional()
-        .describe("User notes on how to apply this tag in the container."),
-      schedule_start_ms: z
-        .string()
-        .optional()
-        .describe("The start timestamp in milliseconds to schedule a tag."),
-      schedule_end_ms: z
-        .string()
-        .optional()
-        .describe("The end timestamp in milliseconds to schedule a tag."),
-      parameter: z
-        .array(ParameterSchema)
-        .optional()
-        .describe(
-          "The tag's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you want to keep; omit to reuse the current set (HTML tags still require an html parameter).",
-        ),
-      firing_trigger_ids: z
-        .array(z.string())
-        .optional()
-        .describe(
-          "Firing trigger IDs. A tag will fire when any of the listed triggers are true.",
-        ),
-      blocking_trigger_ids: z
-        .array(z.string())
-        .optional()
-        .describe(
-          "Blocking trigger IDs. If any of the listed triggers evaluate to true, the tag will not fire.",
-        ),
-      setup_tags: z
-        .array(SetupTagSchema)
-        .optional()
-        .describe("The list of setup tags. Currently only one is allowed."),
-      teardown_tags: z
-        .array(TeardownTagSchema)
-        .optional()
-        .describe("The list of teardown tags. Currently only one is allowed."),
-      tag_firing_option: z
-        .enum([
-          "tagFiringOptionUnspecified",
-          "unlimited",
-          "oncePerEvent",
-          "oncePerLoad",
-        ])
-        .optional()
-        .describe("Option to fire this tag."),
-      paused: z
-        .boolean()
-        .optional()
-        .describe(
-          "Indicates whether the tag is paused, which prevents the tag from firing.",
-        ),
-      consent_settings: ConsentSettingSchema.optional().describe(
-        "Consent settings of a tag.",
-      ),
-      // fingerprint intentionally omitted; tool fetches latest automatically
-    },
+    paramsSchema,
     async ({
       action,
       account_id,
@@ -216,11 +216,11 @@ export const create_update_delete_tag = (
           parameter: rest.parameter?.length ? rest.parameter as Schema$Parameter[] : existingTag?.parameter,
           firingTriggerId: rest.firing_trigger_ids?.length ? rest.firing_trigger_ids : existingTag?.firingTriggerId,
           blockingTriggerId: rest.blocking_trigger_ids?.length ? rest.blocking_trigger_ids : existingTag?.blockingTriggerId,
-          setupTag: rest.setup_tags?.map(st => ({
+          setupTag: rest.setup_tags?.map((st: any) => ({
             tagName: st.tag_name,
             stopOnSetupFailure: st.stop_on_setup_failure,
           })),
-          teardownTag: rest.teardown_tags?.map(tt => ({
+          teardownTag: rest.teardown_tags?.map((tt: any) => ({
             tagName: tt.tag_name,
             stopTeardownOnFailure: tt.stop_teardown_on_failure,
           })),
@@ -230,7 +230,7 @@ export const create_update_delete_tag = (
             consentStatus: rest.consent_settings.consent_status,
             consentType: rest.consent_settings.consent_type ? {
               type: "list",
-              list: rest.consent_settings.consent_type.map(consentType => ({
+              list: rest.consent_settings.consent_type.map((consentType: any) => ({
                 type: "template",
                 value: consentType,
               })),
@@ -325,4 +325,39 @@ export const create_update_delete_tag = (
       }
     },
   );
-}; 
+
+  const baseInputSchema = registeredTool.inputSchema;
+  if (baseInputSchema) {
+    const allowedKeys = new Set(Object.keys(paramsSchema));
+    const aliasSuggestions: Record<string, string> = {
+      firing_trigger_id: "firing_trigger_ids",
+      blocking_trigger_id: "blocking_trigger_ids",
+      setup_tag: "setup_tags",
+      teardown_tag: "teardown_tags",
+    };
+
+    registeredTool.inputSchema = baseInputSchema
+      .passthrough()
+      .superRefine((data, ctx) => {
+        const unknownKeys = Object.keys(data).filter(
+          (key) => !allowedKeys.has(key),
+        );
+
+        if (unknownKeys.length) {
+          const message = unknownKeys
+            .map((key) => {
+              const suggestion = aliasSuggestions[key];
+              return suggestion
+                ? `${key} (did you mean "${suggestion}"?)`
+                : key;
+            })
+            .join(", ");
+
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Unsupported parameter${unknownKeys.length > 1 ? "s" : ""}: ${message}`,
+          });
+        }
+      }) as any;
+  }
+};

@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
+import { z, type ZodRawShape } from "zod";
 import { tagmanager_v2 } from "googleapis";
 import { createErrorResponse, getTagManagerClient, log } from "../utils";
 import { McpAgentToolParamsModel } from "../models/McpAgentModel";
@@ -12,63 +12,65 @@ export const create_update_delete_trigger = (
   server: McpServer,
   { props }: McpAgentToolParamsModel,
 ): void => {
-  server.tool(
+  const paramsSchema: ZodRawShape = {
+    action: z
+      .enum(["create", "update", "delete"])
+      .describe("The action to perform on the trigger."),
+    account_id: z
+      .string()
+      .describe("The unique ID of the GTM Account."),
+    container_id: z
+      .string()
+      .describe("The unique ID of the GTM Container."),
+    workspace_id: z
+      .string()
+      .describe("The unique ID of the GTM Workspace."),
+    trigger_id: z
+      .string()
+      .optional()
+      .describe("Required for update/delete. The unique ID of the GTM Trigger."),
+    name: z
+      .string()
+      .optional()
+      .describe("Required for create/update. Trigger display name."),
+    type: z
+      .string()
+      .optional()
+      .describe("Required for create/update. Defines the data layer event that causes this trigger."),
+    custom_event_filter: z
+      .array(ConditionSchema)
+      .optional()
+      .describe(
+        "Used in the case of custom event, which is fired iff all Conditions are true.",
+      ),
+    filter: z
+      .array(ConditionSchema)
+      .optional()
+      .describe("The trigger will only fire iff all Conditions are true."),
+    auto_event_filter: z
+      .array(ConditionSchema)
+      .optional()
+      .describe("Used in the case of auto event tracking."),
+    parameter: z
+      .array(ParameterSchema)
+      .optional()
+      .describe(
+        "The trigger's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you want to retain; omit to reuse the current set.",
+      ),
+    notes: z
+      .string()
+      .optional()
+      .describe("User notes on how to apply this trigger in the container."),
+    parent_folder_id: z
+      .string()
+      .optional()
+      .describe("Parent folder id."),
+  };
+
+  const registeredTool = server.tool(
     "create_update_delete_trigger",
     "Create, update, or delete a GTM Trigger",
-    {
-      action: z
-        .enum(["create", "update", "delete"])
-        .describe("The action to perform on the trigger."),
-      account_id: z
-        .string()
-        .describe("The unique ID of the GTM Account."),
-      container_id: z
-        .string()
-        .describe("The unique ID of the GTM Container."),
-      workspace_id: z
-        .string()
-        .describe("The unique ID of the GTM Workspace."),
-      trigger_id: z
-        .string()
-        .optional()
-        .describe("Required for update/delete. The unique ID of the GTM Trigger."),
-      name: z
-        .string()
-        .optional()
-        .describe("Required for create/update. Trigger display name."),
-      type: z
-        .string()
-        .optional()
-        .describe("Required for create/update. Defines the data layer event that causes this trigger."),
-      custom_event_filter: z
-        .array(ConditionSchema)
-        .optional()
-        .describe(
-          "Used in the case of custom event, which is fired iff all Conditions are true.",
-        ),
-      filter: z
-        .array(ConditionSchema)
-        .optional()
-        .describe("The trigger will only fire iff all Conditions are true."),
-      auto_event_filter: z
-        .array(ConditionSchema)
-        .optional()
-        .describe("Used in the case of auto event tracking."),
-      parameter: z
-        .array(ParameterSchema)
-        .optional()
-        .describe(
-          "The trigger's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you want to retain; omit to reuse the current set.",
-        ),
-      notes: z
-        .string()
-        .optional()
-        .describe("User notes on how to apply this trigger in the container."),
-      parent_folder_id: z
-        .string()
-        .optional()
-        .describe("Parent folder id."),
-    },
+    paramsSchema,
     async ({
       action,
       account_id,
@@ -212,4 +214,39 @@ export const create_update_delete_trigger = (
       }
     },
   );
+
+  const baseInputSchema = registeredTool.inputSchema;
+  if (baseInputSchema) {
+    const allowedKeys = new Set(Object.keys(paramsSchema));
+    const aliasSuggestions: Record<string, string> = {
+      custom_event_filters: "custom_event_filter",
+      filters: "filter",
+      auto_event_filters: "auto_event_filter",
+      parameters: "parameter",
+    };
+
+    registeredTool.inputSchema = baseInputSchema
+      .passthrough()
+      .superRefine((data, ctx) => {
+        const unknownKeys = Object.keys(data).filter(
+          (key) => !allowedKeys.has(key),
+        );
+
+        if (unknownKeys.length) {
+          const message = unknownKeys
+            .map((key) => {
+              const suggestion = aliasSuggestions[key];
+              return suggestion
+                ? `${key} (did you mean "${suggestion}"?)`
+                : key;
+            })
+            .join(", ");
+
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Unsupported parameter${unknownKeys.length > 1 ? "s" : ""}: ${message}`,
+          });
+        }
+      }) as any;
+  }
 }; 

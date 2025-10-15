@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
+import { z, type ZodRawShape } from "zod";
 import { tagmanager_v2 } from "googleapis";
 import { createErrorResponse, getTagManagerClient, log } from "../utils";
 import { McpAgentToolParamsModel } from "../models/McpAgentModel";
@@ -12,68 +12,70 @@ export const create_update_delete_variable = (
   server: McpServer,
   { props }: McpAgentToolParamsModel,
 ): void => {
-  server.tool(
+  const paramsSchema: ZodRawShape = {
+    action: z
+      .enum(["create", "update", "delete"])
+      .describe("The action to perform on the variable."),
+    account_id: z
+      .string()
+      .describe("The unique ID of the GTM Account."),
+    container_id: z
+      .string()
+      .describe("The unique ID of the GTM Container."),
+    workspace_id: z
+      .string()
+      .describe("The unique ID of the GTM Workspace."),
+    variable_id: z
+      .string()
+      .optional()
+      .describe("Required for update/delete. The unique ID of the GTM Variable."),
+    name: z
+      .string()
+      .optional()
+      .describe("Required for create/update. Variable display name."),
+    type: z
+      .string()
+      .optional()
+      .describe("Required for create/update. GTM Variable Type."),
+    parameter: z
+      .array(ParameterSchema)
+      .optional()
+      .describe(
+        "The variable's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you wish to keep; omit to retain the current set.",
+      ),
+    notes: z
+      .string()
+      .optional()
+      .describe("User notes on how to apply this variable in the container."),
+    schedule_start_ms: z
+      .string()
+      .optional()
+      .describe("The start timestamp in milliseconds to schedule a variable."),
+    schedule_end_ms: z
+      .string()
+      .optional()
+      .describe("The end timestamp in milliseconds to schedule a variable."),
+    enabling_trigger_id: z
+      .array(z.string())
+      .optional()
+      .describe("For mobile containers only: A list of trigger IDs for enabling conditional variables."),
+    disabling_trigger_id: z
+      .array(z.string())
+      .optional()
+      .describe("For mobile containers only: A list of trigger IDs for disabling conditional variables."),
+    parent_folder_id: z
+      .string()
+      .optional()
+      .describe("Parent folder id."),
+    format_value: FormatValueSchema
+      .optional()
+      .describe("Option to convert a variable value to other value."),
+  };
+
+  const registeredTool = server.tool(
     "create_update_delete_variable",
     "Create, update, or delete a GTM Variable",
-    {
-      action: z
-        .enum(["create", "update", "delete"])
-        .describe("The action to perform on the variable."),
-      account_id: z
-        .string()
-        .describe("The unique ID of the GTM Account."),
-      container_id: z
-        .string()
-        .describe("The unique ID of the GTM Container."),
-      workspace_id: z
-        .string()
-        .describe("The unique ID of the GTM Workspace."),
-      variable_id: z
-        .string()
-        .optional()
-        .describe("Required for update/delete. The unique ID of the GTM Variable."),
-      name: z
-        .string()
-        .optional()
-        .describe("Required for create/update. Variable display name."),
-      type: z
-        .string()
-        .optional()
-        .describe("Required for create/update. GTM Variable Type."),
-      parameter: z
-        .array(ParameterSchema)
-        .optional()
-        .describe(
-          "The variable's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you wish to keep; omit to retain the current set.",
-        ),
-      notes: z
-        .string()
-        .optional()
-        .describe("User notes on how to apply this variable in the container."),
-      schedule_start_ms: z
-        .string()
-        .optional()
-        .describe("The start timestamp in milliseconds to schedule a variable."),
-      schedule_end_ms: z
-        .string()
-        .optional()
-        .describe("The end timestamp in milliseconds to schedule a variable."),
-      enabling_trigger_id: z
-        .array(z.string())
-        .optional()
-        .describe("For mobile containers only: A list of trigger IDs for enabling conditional variables."),
-      disabling_trigger_id: z
-        .array(z.string())
-        .optional()
-        .describe("For mobile containers only: A list of trigger IDs for disabling conditional variables."),
-      parent_folder_id: z
-        .string()
-        .optional()
-        .describe("Parent folder id."),
-      format_value: FormatValueSchema
-        .optional()
-        .describe("Option to convert a variable value to other value."),
-    },
+    paramsSchema,
     async ({
       action,
       account_id,
@@ -219,4 +221,38 @@ export const create_update_delete_variable = (
       }
     },
   );
+
+  const baseInputSchema = registeredTool.inputSchema;
+  if (baseInputSchema) {
+    const allowedKeys = new Set(Object.keys(paramsSchema));
+    const aliasSuggestions: Record<string, string> = {
+      parameters: "parameter",
+      enabling_trigger_ids: "enabling_trigger_id",
+      disabling_trigger_ids: "disabling_trigger_id",
+    };
+
+    registeredTool.inputSchema = baseInputSchema
+      .passthrough()
+      .superRefine((data, ctx) => {
+        const unknownKeys = Object.keys(data).filter(
+          (key) => !allowedKeys.has(key),
+        );
+
+        if (unknownKeys.length) {
+          const message = unknownKeys
+            .map((key) => {
+              const suggestion = aliasSuggestions[key];
+              return suggestion
+                ? `${key} (did you mean "${suggestion}"?)`
+                : key;
+            })
+            .join(", ");
+
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Unsupported parameter${unknownKeys.length > 1 ? "s" : ""}: ${message}`,
+          });
+        }
+      }) as any;
+  }
 }; 
