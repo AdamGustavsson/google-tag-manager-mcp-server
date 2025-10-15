@@ -99,19 +99,19 @@ export const create_update_delete_tag = (
       .array(ParameterSchema)
       .optional()
       .describe(
-        "The tag's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you want to keep; omit to reuse the current set (HTML tags still require an html parameter).",
+        "The tag's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you want to keep. Use [] to clear all parameters; omit to keep existing parameters (HTML tags still require an html parameter).",
       ),
     firing_trigger_ids: z
       .array(z.string())
       .optional()
       .describe(
-        "Firing trigger IDs. A tag will fire when any of the listed triggers are true; provide an array even when specifying a single trigger ID.",
+        "Firing trigger IDs. A tag will fire when any of the listed triggers are true; provide an array even when specifying a single trigger ID. Use [] to clear all firing triggers; omit to keep existing triggers.",
       ),
     blocking_trigger_ids: z
       .array(z.string())
       .optional()
       .describe(
-        "Blocking trigger IDs. If any of the listed triggers evaluate to true, the tag will not fire.",
+        "Blocking trigger IDs. If any of the listed triggers evaluate to true, the tag will not fire. Use [] to clear all blocking triggers; omit to keep existing triggers.",
       ),
     setup_tags: z
       .array(SetupTagSchema)
@@ -213,9 +213,9 @@ export const create_update_delete_tag = (
           notes: rest.notes,
           scheduleStartMs: rest.schedule_start_ms,
           scheduleEndMs: rest.schedule_end_ms,
-          parameter: rest.parameter?.length ? rest.parameter as Schema$Parameter[] : existingTag?.parameter,
-          firingTriggerId: rest.firing_trigger_ids?.length ? rest.firing_trigger_ids : existingTag?.firingTriggerId,
-          blockingTriggerId: rest.blocking_trigger_ids?.length ? rest.blocking_trigger_ids : existingTag?.blockingTriggerId,
+          parameter: rest.parameter !== undefined ? rest.parameter as Schema$Parameter[] : existingTag?.parameter,
+          firingTriggerId: rest.firing_trigger_ids !== undefined ? rest.firing_trigger_ids : existingTag?.firingTriggerId,
+          blockingTriggerId: rest.blocking_trigger_ids !== undefined ? rest.blocking_trigger_ids : existingTag?.blockingTriggerId,
           setupTag: rest.setup_tags?.map((st: any) => ({
             tagName: st.tag_name,
             stopOnSetupFailure: st.stop_on_setup_failure,

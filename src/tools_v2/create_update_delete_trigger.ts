@@ -41,21 +41,21 @@ export const create_update_delete_trigger = (
       .array(ConditionSchema)
       .optional()
       .describe(
-        "Used in the case of custom event, which is fired iff all Conditions are true.",
+        "Used in the case of custom event, which is fired iff all Conditions are true. Use [] to clear all filters; omit to keep existing filters.",
       ),
     filter: z
       .array(ConditionSchema)
       .optional()
-      .describe("The trigger will only fire iff all Conditions are true."),
+      .describe("The trigger will only fire iff all Conditions are true. Use [] to clear all filters; omit to keep existing filters."),
     auto_event_filter: z
       .array(ConditionSchema)
       .optional()
-      .describe("Used in the case of auto event tracking."),
+      .describe("Used in the case of auto event tracking. Use [] to clear all filters; omit to keep existing filters."),
     parameter: z
       .array(ParameterSchema)
       .optional()
       .describe(
-        "The trigger's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you want to retain; omit to reuse the current set.",
+        "The trigger's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you want to retain. Use [] to clear all parameters; omit to keep existing parameters.",
       ),
     notes: z
       .string()
@@ -131,10 +131,10 @@ export const create_update_delete_trigger = (
           name,
           type,
           notes: rest.notes,
-          parameter: rest.parameter?.length ? rest.parameter : existingTrigger?.parameter,
-          customEventFilter: rest.custom_event_filter?.length ? rest.custom_event_filter : existingTrigger?.customEventFilter,
-          filter: rest.filter?.length ? rest.filter : existingTrigger?.filter,
-          autoEventFilter: rest.auto_event_filter?.length ? rest.auto_event_filter : existingTrigger?.autoEventFilter,
+          parameter: rest.parameter !== undefined ? rest.parameter : existingTrigger?.parameter,
+          customEventFilter: rest.custom_event_filter !== undefined ? rest.custom_event_filter : existingTrigger?.customEventFilter,
+          filter: rest.filter !== undefined ? rest.filter : existingTrigger?.filter,
+          autoEventFilter: rest.auto_event_filter !== undefined ? rest.auto_event_filter : existingTrigger?.autoEventFilter,
           parentFolderId: rest.parent_folder_id || existingTrigger?.parentFolderId,
         };
 

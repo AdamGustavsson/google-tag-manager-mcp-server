@@ -41,7 +41,7 @@ export const create_update_delete_variable = (
       .array(ParameterSchema)
       .optional()
       .describe(
-        "The variable's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you wish to keep; omit to retain the current set.",
+        "The variable's parameters. Use the same object structure returned by get_workspace_entity (GTM API format). Providing this array replaces the existing parameters, so include every entry you wish to keep. Use [] to clear all parameters; omit to keep existing parameters.",
       ),
     notes: z
       .string()
@@ -58,11 +58,11 @@ export const create_update_delete_variable = (
     enabling_trigger_id: z
       .array(z.string())
       .optional()
-      .describe("For mobile containers only: A list of trigger IDs for enabling conditional variables."),
+      .describe("For mobile containers only: A list of trigger IDs for enabling conditional variables. Use [] to clear all enabling triggers; omit to keep existing triggers."),
     disabling_trigger_id: z
       .array(z.string())
       .optional()
-      .describe("For mobile containers only: A list of trigger IDs for disabling conditional variables."),
+      .describe("For mobile containers only: A list of trigger IDs for disabling conditional variables. Use [] to clear all disabling triggers; omit to keep existing triggers."),
     parent_folder_id: z
       .string()
       .optional()
@@ -136,11 +136,11 @@ export const create_update_delete_variable = (
           name,
           type,
           notes: rest.notes,
-          parameter: rest.parameter?.length ? rest.parameter : existingVariable?.parameter,
+          parameter: rest.parameter !== undefined ? rest.parameter : existingVariable?.parameter,
           scheduleStartMs: rest.schedule_start_ms || existingVariable?.scheduleStartMs,
           scheduleEndMs: rest.schedule_end_ms || existingVariable?.scheduleEndMs,
-          enablingTriggerId: rest.enabling_trigger_id?.length ? rest.enabling_trigger_id : existingVariable?.enablingTriggerId,
-          disablingTriggerId: rest.disabling_trigger_id?.length ? rest.disabling_trigger_id : existingVariable?.disablingTriggerId,
+          enablingTriggerId: rest.enabling_trigger_id !== undefined ? rest.enabling_trigger_id : existingVariable?.enablingTriggerId,
+          disablingTriggerId: rest.disabling_trigger_id !== undefined ? rest.disabling_trigger_id : existingVariable?.disablingTriggerId,
           parentFolderId: rest.parent_folder_id || existingVariable?.parentFolderId,
           formatValue: rest.format_value || existingVariable?.formatValue,
         };
