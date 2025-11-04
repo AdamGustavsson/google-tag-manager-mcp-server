@@ -4,6 +4,7 @@ import { McpAgent } from "agents/mcp";
 import { McpAgentPropsModel } from "./models/McpAgentModel";
 import { registerTools } from "./tools_v2";
 import { apisHandler, getPackageVersion } from "./utils";
+import { createCachedKV } from "./utils/kvCacheWrapper";
 
 export class GoogleTagManagerMCPServer extends McpAgent<
   Env,
@@ -23,7 +24,9 @@ export class GoogleTagManagerMCPServer extends McpAgent<
   }
 }
 
-export default new OAuthProvider({
+// Create the OAuth provider instance
+// The KV namespace will be wrapped with caching in the fetch handler below
+const oauthProvider = new OAuthProvider({
   // Protect both SSE and Streamable HTTP endpoints
   apiHandlers: {
     // Use built-in SSE transport from agents/mcp (now supports absolute endpoint)
@@ -97,3 +100,15 @@ export default new OAuthProvider({
     }
   },
 });
+
+// Wrap the OAuth provider to add KV caching
+// We intercept the fetch call to wrap the KV namespace before it reaches OAuthProvider
+const originalFetch = oauthProvider.fetch.bind(oauthProvider);
+
+oauthProvider.fetch = async function(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  // Wrap the KV namespace with caching to reduce KV read operations
+  const wrappedEnv = { ...env, OAUTH_KV: createCachedKV(env.OAUTH_KV) };
+  return originalFetch(request, wrappedEnv, ctx);
+};
+
+export default oauthProvider;

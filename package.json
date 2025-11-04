@@ -27,7 +27,7 @@
     "cf-typegen": "wrangler types --include-env=false"
   },
   "dependencies": {
-    "@cloudflare/workers-oauth-provider": "^0.0.5",
+    "@cloudflare/workers-oauth-provider": "^0.0.13",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "agents": "^0.0.94",
     "dotenv": "^16.3.1",
