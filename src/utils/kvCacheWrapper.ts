@@ -58,16 +58,20 @@ export function createCachedKV(
   kvNamespace: KVNamespace,
   defaultCacheTtl: number = 60
 ): KVNamespace {
+  const originalGet = kvNamespace.get.bind(kvNamespace);
+
   // Use Proxy to intercept all KV operations and add caching
   return new Proxy(kvNamespace, {
     get(target, prop, receiver) {
-      const original = Reflect.get(target, prop, receiver);
-      
-      // Only wrap the get method
-      if (prop === 'get') {
-        return function(
+      if (prop === "get") {
+        return function (
           key: string | string[],
-          optionsOrType?: { type?: "text" | "json" | "arrayBuffer" | "stream"; cacheTtl?: number } | "text" | "json" | "arrayBuffer" | "stream",
+          optionsOrType?:
+            | { type?: "text" | "json" | "arrayBuffer" | "stream"; cacheTtl?: number }
+            | "text"
+            | "json"
+            | "arrayBuffer"
+            | "stream",
           options?: { cacheTtl?: number }
         ): Promise<any> {
           // Handle different function signatures
@@ -98,36 +102,21 @@ export function createCachedKV(
             finalCacheTtl = 300; // Grants and clients change less frequently
           }
 
-          // Add cacheTtl to the KV get operation
-          if (Array.isArray(key)) {
-            // Handle array of keys
-            if (type === "json") {
-              return original.call(target, key, { type: "json", cacheTtl: finalCacheTtl });
-            } else if (type === "text") {
-              return original.call(target, key, { type: "text", cacheTtl: finalCacheTtl });
-            } else {
-              return original.call(target, key, { cacheTtl: finalCacheTtl });
-            }
-          } else {
-            // Handle single key
-            if (type === "json") {
-              return original.call(target, key, { type: "json", cacheTtl: finalCacheTtl });
-            } else if (type === "text") {
-              return original.call(target, key, { type: "text", cacheTtl: finalCacheTtl });
-            } else if (type === "arrayBuffer") {
-              return original.call(target, key, { type: "arrayBuffer", cacheTtl: finalCacheTtl });
-            } else if (type === "stream") {
-              return original.call(target, key, { type: "stream", cacheTtl: finalCacheTtl });
-            } else {
-              return original.call(target, key, { cacheTtl: finalCacheTtl });
-            }
-          }
+          // Build options with cacheTtl while preserving type
+          const finalOptions = type
+            ? { type, cacheTtl: finalCacheTtl }
+            : { cacheTtl: finalCacheTtl };
+
+          return originalGet(key as any, finalOptions as any);
         };
       }
-      
-      // Return original for all other properties
-      return original;
-    }
+
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof value === "function") {
+        return value.bind(target);
+      }
+      return value;
+    },
   }) as KVNamespace;
 }
 
@@ -139,7 +128,12 @@ export function createCachedKV_old(
   return {
     get(
       key: string,
-      optionsOrType?: { type?: "text" | "json" | "arrayBuffer" | "stream"; cacheTtl?: number } | "text" | "json" | "arrayBuffer" | "stream",
+      optionsOrType?:
+        | { type?: "text" | "json" | "arrayBuffer" | "stream"; cacheTtl?: number }
+        | "text"
+        | "json"
+        | "arrayBuffer"
+        | "stream",
       options?: { cacheTtl?: number }
     ): Promise<any> {
       // Handle different function signatures
@@ -169,18 +163,19 @@ export function createCachedKV_old(
         finalCacheTtl = 300; // Grants and clients change less frequently
       }
 
-      // Add cacheTtl to the KV get operation
       if (type === "json") {
         return kvNamespace.get(key, { type: "json", cacheTtl: finalCacheTtl });
-      } else if (type === "text") {
-        return kvNamespace.get(key, { type: "text", cacheTtl: finalCacheTtl });
-      } else if (type === "arrayBuffer") {
-        return kvNamespace.get(key, { type: "arrayBuffer", cacheTtl: finalCacheTtl });
-      } else if (type === "stream") {
-        return kvNamespace.get(key, { type: "stream", cacheTtl: finalCacheTtl });
-      } else {
-        return kvNamespace.get(key, { cacheTtl: finalCacheTtl });
       }
+      if (type === "text") {
+        return kvNamespace.get(key, { type: "text", cacheTtl: finalCacheTtl });
+      }
+      if (type === "arrayBuffer") {
+        return kvNamespace.get(key, { type: "arrayBuffer", cacheTtl: finalCacheTtl });
+      }
+      if (type === "stream") {
+        return kvNamespace.get(key, { type: "stream", cacheTtl: finalCacheTtl });
+      }
+      return kvNamespace.get(key, { cacheTtl: finalCacheTtl });
     },
 
     put(

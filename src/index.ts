@@ -101,14 +101,25 @@ const oauthProvider = new OAuthProvider({
   },
 });
 
-// Wrap the OAuth provider to add KV caching
-// We intercept the fetch call to wrap the KV namespace before it reaches OAuthProvider
-const originalFetch = oauthProvider.fetch.bind(oauthProvider);
+// Store the original fetch method
+const originalFetch = oauthProvider.fetch;
 
-oauthProvider.fetch = async function(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+// Override the fetch method directly on the oauthProvider instance
+// This ensures 'this' context is always correct since we're modifying the instance directly
+oauthProvider.fetch = function(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   // Wrap the KV namespace with caching to reduce KV read operations
-  const wrappedEnv = { ...env, OAUTH_KV: createCachedKV(env.OAUTH_KV) };
-  return originalFetch(request, wrappedEnv, ctx);
+  const cachedKV = createCachedKV(env.OAUTH_KV);
+  const wrappedEnv = new Proxy(env, {
+    get(target, prop, receiver) {
+      if (prop === "OAUTH_KV") {
+        return cachedKV;
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
+  // Call the original fetch method with correct 'this' context (this = oauthProvider)
+  return originalFetch.call(this, request, wrappedEnv as Env, ctx);
 };
 
 export default oauthProvider;
