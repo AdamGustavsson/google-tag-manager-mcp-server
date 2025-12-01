@@ -10,6 +10,7 @@ export const remove_mcp_server_data = (
   server.tool(
     TAG_MANAGER_REMOVE_MCP_SERVER_DATA,
     "Remove client data from MCP server and revoke google auth access",
+    {},
     async () => {
       const url = new URL("remove", env.MCP_PUBLIC_BASE_URL);
 
